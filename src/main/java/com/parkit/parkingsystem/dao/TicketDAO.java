@@ -86,4 +86,24 @@ public class TicketDAO {
         }
         return false;
     }
+
+    public boolean isReduced (String vehicleRegNumber){
+        Connection con = null;
+        try{
+            con = dataBaseConfig.getConnection();
+            PreparedStatement ps = con.prepareStatement(DBConstants.GET_MANY_TICKETS);
+            ps.setString(1,vehicleRegNumber);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()){
+                if (rs.getInt(1)> 1){
+                    return true;
+                }
+            }
+        }catch (Exception ex){
+            logger.error("Error determining if reduction applies", ex);
+        }finally {
+            dataBaseConfig.closeConnection(con);
+        }
+        return false;
+    }
 }

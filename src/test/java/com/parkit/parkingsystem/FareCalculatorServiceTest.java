@@ -2,30 +2,34 @@ package com.parkit.parkingsystem;
 
 import com.parkit.parkingsystem.constants.Fare;
 import com.parkit.parkingsystem.constants.ParkingType;
+import com.parkit.parkingsystem.dao.TicketDAO;
 import com.parkit.parkingsystem.model.ParkingSpot;
 import com.parkit.parkingsystem.model.Ticket;
 import com.parkit.parkingsystem.service.FareCalculatorService;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
-
 public class FareCalculatorServiceTest {
 
-    private static FareCalculatorService fareCalculatorService;
+    @InjectMocks
+    private FareCalculatorService fareCalculatorService;
     private Ticket ticket;
 
-    @BeforeAll
-    private static void setUp() {
-        fareCalculatorService = new FareCalculatorService();
-    }
+    @Mock
+    private TicketDAO ticketDAO;
 
     @BeforeEach
     private void setUpPerTest() {
         ticket = new Ticket();
+        MockitoAnnotations.initMocks(this);
     }
 
     @Test
@@ -138,4 +142,19 @@ public class FareCalculatorServiceTest {
         assertEquals(0, ticket.getPrice());
     }
 
+    @Test
+    public void calculateFareWithReduction(){
+        Date inTime = new Date();
+        inTime.setTime(System.currentTimeMillis() - (1000 * 60 * 120));
+        Date outTime = new Date();
+        ParkingSpot parkingSpot = new ParkingSpot(1, ParkingType.CAR, false);
+
+        ticket.setInTime(inTime);
+        ticket.setOutTime(outTime);
+        ticket.setParkingSpot(parkingSpot);
+        ticket.setVehicleRegNumber("ABCDEF");
+        when(ticketDAO.isReduced(any(String.class))).thenReturn(true);
+        fareCalculatorService.calculateFare(ticket);
+        assertEquals(2 * Fare.CAR_RATE_PER_HOUR * 0.95, ticket.getPrice());
+    }
 }
