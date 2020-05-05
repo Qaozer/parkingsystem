@@ -1,5 +1,6 @@
 package com.parkit.parkingsystem.integration;
 
+import com.parkit.parkingsystem.constants.ParkingType;
 import com.parkit.parkingsystem.dao.ParkingSpotDAO;
 import com.parkit.parkingsystem.dao.TicketDAO;
 import com.parkit.parkingsystem.integration.config.DataBaseTestConfig;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static junit.framework.Assert.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,16 +53,26 @@ public class ParkingDataBaseIT {
     @Test
     public void testParkingACar(){
         ParkingService parkingService = new ParkingService(inputReaderUtil, parkingSpotDAO, ticketDAO);
+        assertEquals(1, parkingSpotDAO.getNextAvailableSlot(ParkingType.CAR));
         parkingService.processIncomingVehicle();
-        //TODO: check that a ticket is actualy saved in DB and Parking table is updated with availability
+        assertNotNull(ticketDAO.getTicket("ABCDEF"));
+        assertEquals(2, parkingSpotDAO.getNextAvailableSlot(ParkingType.CAR));
     }
 
     @Test
     public void testParkingLotExit(){
         testParkingACar();
         ParkingService parkingService = new ParkingService(inputReaderUtil, parkingSpotDAO, ticketDAO);
+        assertNull(ticketDAO.getTicket("ABCDEF").getOutTime());
         parkingService.processExitingVehicle();
-        //TODO: check that the fare generated and out time are populated correctly in the database
+        assertEquals(0.0, ticketDAO.getTicket("ABCDEF").getPrice());
+        assertNotNull(ticketDAO.getTicket("ABCDEF").getOutTime());
     }
 
+    @Test
+    public void testReducedFare(){
+        testParkingLotExit();
+        testParkingACar();
+        assertEquals(true, ticketDAO.isReduced("ABCDEF"));
+    }
 }
