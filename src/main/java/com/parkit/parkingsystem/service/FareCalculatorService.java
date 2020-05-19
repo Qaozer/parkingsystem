@@ -6,7 +6,7 @@ import com.parkit.parkingsystem.model.Ticket;
 
 public class FareCalculatorService {
 
-    private final double ONEHOUR = 3600000;
+    private static final double ONEHOUR = 3600000;
     private TicketDAO ticketDAO = new TicketDAO();
 
     public void calculateFare(Ticket ticket){

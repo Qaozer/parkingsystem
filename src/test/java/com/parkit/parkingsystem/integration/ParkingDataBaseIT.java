@@ -5,6 +5,8 @@ import com.parkit.parkingsystem.dao.ParkingSpotDAO;
 import com.parkit.parkingsystem.dao.TicketDAO;
 import com.parkit.parkingsystem.integration.config.DataBaseTestConfig;
 import com.parkit.parkingsystem.integration.service.DataBasePrepareService;
+import com.parkit.parkingsystem.model.ParkingSpot;
+import com.parkit.parkingsystem.model.Ticket;
 import com.parkit.parkingsystem.service.ParkingService;
 import com.parkit.parkingsystem.util.InputReaderUtil;
 import org.junit.jupiter.api.AfterAll;
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Date;
 
 import static junit.framework.Assert.*;
 import static org.mockito.Mockito.when;
@@ -40,8 +44,6 @@ public class ParkingDataBaseIT {
 
     @BeforeEach
     private void setUpPerTest() throws Exception {
-        when(inputReaderUtil.readSelection()).thenReturn(1);
-        when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn("ABCDEF");
         dataBasePrepareService.clearDataBaseEntries();
     }
 
@@ -49,9 +51,23 @@ public class ParkingDataBaseIT {
     private static void tearDown(){
 
     }
+    @Test
+    public void testGetNextAvailableSlot(){
+        int slot = parkingSpotDAO.getNextAvailableSlot(ParkingType.CAR);
+        assertEquals(1, slot);
+    }
 
     @Test
-    public void testParkingACar(){
+    public void testUpdateParking(){
+        ParkingSpot parkingSpot = new ParkingSpot(1, ParkingType.CAR, false);
+        parkingSpotDAO.updateParking(parkingSpot);
+        assertEquals(2,parkingSpotDAO.getNextAvailableSlot(ParkingType.CAR));
+    }
+
+    @Test
+    public void testParkingACar() throws Exception{
+        when(inputReaderUtil.readSelection()).thenReturn(1);
+        when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn("ABCDEF");
         ParkingService parkingService = new ParkingService(inputReaderUtil, parkingSpotDAO, ticketDAO);
         assertEquals(1, parkingSpotDAO.getNextAvailableSlot(ParkingType.CAR));
         parkingService.processIncomingVehicle();
@@ -60,19 +76,47 @@ public class ParkingDataBaseIT {
     }
 
     @Test
-    public void testParkingLotExit(){
+    public void testParkingLotExit() throws Exception{
+        when(inputReaderUtil.readSelection()).thenReturn(1);
+        when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn("ABCDEF");
         testParkingACar();
         ParkingService parkingService = new ParkingService(inputReaderUtil, parkingSpotDAO, ticketDAO);
         assertNull(ticketDAO.getTicket("ABCDEF").getOutTime());
+        Thread.sleep(2000);
         parkingService.processExitingVehicle();
         assertEquals(0.0, ticketDAO.getTicket("ABCDEF").getPrice());
         assertNotNull(ticketDAO.getTicket("ABCDEF").getOutTime());
     }
 
     @Test
-    public void testReducedFare(){
+    public void testReducedFare() throws Exception{
+        when(inputReaderUtil.readSelection()).thenReturn(1);
+        when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn("ABCDEF");
         testParkingLotExit();
+        assertEquals(false, ticketDAO.isReduced("ABCDEF"));
         testParkingACar();
         assertEquals(true, ticketDAO.isReduced("ABCDEF"));
+    }
+
+    @Test
+    public void saveAndGetTicketTest(){
+        ParkingSpot parkingSpot = new ParkingSpot(1, ParkingType.CAR, false);
+        Ticket ticket = new Ticket();
+        Ticket returnedTicket;
+        Date inTime = new Date();
+        ticket.setParkingSpot(parkingSpot);
+        ticket.setVehicleRegNumber("AAAA");
+        ticket.setPrice(0);
+        ticket.setInTime(inTime);
+        ticket.setOutTime(null);
+
+        returnedTicket = ticketDAO.getTicket("AAAA");
+        assertNull(returnedTicket);
+        ticketDAO.saveTicket(ticket);
+        returnedTicket = ticketDAO.getTicket("AAAA");
+        assertEquals(returnedTicket.getParkingSpot(), parkingSpot);
+        assertEquals(returnedTicket.getVehicleRegNumber(), "AAAA");
+        assertEquals(returnedTicket.getPrice(),0.0);
+        assertEquals(returnedTicket.getInTime().getTime()/(1000*60), ticket.getInTime().getTime()/(1000*60));
     }
 }
