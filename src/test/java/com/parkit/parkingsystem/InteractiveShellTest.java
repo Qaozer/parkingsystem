@@ -17,14 +17,13 @@ public class InteractiveShellTest {
 
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    private final PrintStream originalOut = System.out;
     private InteractiveShell interactiveShell;
     private InputStream inputStream;
 
     @Before
     public void setUp(){
-        String command = "3";
-        inputStream = new ByteArrayInputStream(command.getBytes(Charset.forName("UTF-8")));
+        String input = "3";
+        inputStream = new ByteArrayInputStream(input.getBytes(Charset.forName("UTF-8")));
         System.setOut(new PrintStream(outContent));
         System.setIn(inputStream);
         interactiveShell = new InteractiveShell();
@@ -32,7 +31,8 @@ public class InteractiveShellTest {
 
     @After
     public void restoreStreams(){
-        System.setOut(originalOut);
+        System.setOut(System.out);
+        System.setIn(System.in);
     }
 
     @Test
